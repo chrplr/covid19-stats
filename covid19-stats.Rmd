@@ -1,0 +1,81 @@
+---
+title: "covid19 stats"
+author: "christophe@pallier.org"
+date: "4/20/2020"
+output: html_document
+---
+
+
+```{r init}
+library(ggplot2)
+library(utils)
+```
+
+
+We import "COVID-19 cases worldwide" from https://data.europa.eu/euodp/en/data/dataset/covid-19-coronavirus-data:
+
+```{r import}
+covid19ori  <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
+```
+
+We compute the cumulated number of deaths, per countries and per days, and the mortality rates relative to the population (in ppm=parts per million).
+
+```{r newvars}
+covid19ori$date <- as.Date(with(covid19ori, sprintf("%4d-%02d-%02d", year, month, day)))
+covid19ori <- covid19ori[order(covid19ori$countryterritoryCode, covid19ori$date),]
+covid19ori$cumdeaths <- ave(covid19ori$deaths, covid19ori$countryterritoryCode, FUN=cumsum)
+covid19ori$cumdeathsnorm <- (covid19ori$cumdeaths / covid19ori$popData2018) * 1e6
+covid19ori$deathrateppm <- (covid19ori$deaths / covid19ori$popData2018) * 1e6
+```
+
+
+We select the countries we are interested in.(Ignore the column named 'confined': it is not (yet) used)
+
+```{r selection}
+countries <- read.csv(text="code,confined
+FRA,1
+ITA,1 
+ESP,1
+BEL,1
+GBR,0
+DEU,0
+NLD,0
+SWE,0
+USA,NA
+DNK,0
+NOR,0
+FIN,0
+", header=TRUE)
+
+covid19 <- subset(covid19ori, countryterritoryCode %in% countries$code & month %in% c(3,4))  # keep only March/April
+covid19 <- merge(covid19, countries)
+
+```
+
+And we start to plot the mortality rates:
+
+```{r deathrate, fig.dim=c(10, 10)}
+
+pg <- ggplot(covid19, aes(x=date, y=deathrateppm, group=1)) + geom_line() + geom_point(size=.5) + geom_smooth() + ggtitle("Mortality rates (ppm) by country") + facet_wrap(~countryterritoryCode) + coord_fixed(ratio=1)
+
+print(pg)
+
+
+```
+
+Same data but overlapping the curves on a single plot. 
+
+```{r deathrate2, fig.dim=c(10, 10)}
+pg <- ggplot(covid19, aes(x=date, y=deathrateppm, group=countryterritoryCode, color=countryterritoryCode)) + geom_line(size=1) + geom_point(size=.5) + ggtitle('Mortality rate (ppm) by countries') + coord_fixed(ratio=1) + theme(panel.background = element_rect(fill = "lightgray", size = 2, linetype = "solid"))
+
+print(pg)
+```
+
+
+Next, we plot the cumulative number of the death normalized by country size. 
+
+```{r cumulated_deaths, fig.dim=c(10, 8)}
+pg <- ggplot(covid19, aes(x=date, y=cumdeathsnorm, group=countryterritoryCode, color=countryterritoryCode)) + geom_line(size=1) + geom_point(size=.5) + ggtitle('Cumulated deaths (ppm) by countries') + coord_fixed(ratio=0.1) + theme(panel.background = element_rect(fill = "lightgray",size = 2, linetype = "solid"))
+
+print(pg)
+```
