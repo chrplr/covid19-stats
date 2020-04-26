@@ -12,11 +12,18 @@ library(utils)
 ```
 
 
-We import "COVID-19 cases worldwide" from https://data.europa.eu/euodp/en/data/dataset/covid-19-coronavirus-data:
+This notebook computes and plots the mortality rates from the "COVID-19 cases worldwide" database available at https://data.europa.eu/euodp/en/data/dataset/covid-19-coronavirus-data
+
+
+The source code can be downloaded from https://github.com/chrplr/covid19-stats 
+
+# import data
 
 ```{r import}
 covid19ori  <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
 ```
+
+# recode variables
 
 We compute the cumulated number of deaths, per countries and per days, and the mortality rates relative to the population (in ppm=parts per million).
 
@@ -28,6 +35,8 @@ covid19ori$cumdeathsnorm <- (covid19ori$cumdeaths / covid19ori$popData2018) * 1e
 covid19ori$deathrateppm <- (covid19ori$deaths / covid19ori$popData2018) * 1e6
 ```
 
+
+# select countries of interest
 
 We select the countries we are interested in.(Ignore the column named 'confined': it is not (yet) used)
 
@@ -51,6 +60,8 @@ covid19 <- subset(covid19ori, countryterritoryCode %in% countries$code & month %
 covid19 <- merge(covid19, countries)
 
 ```
+
+# plots
 
 And we start to plot the mortality rates:
 
